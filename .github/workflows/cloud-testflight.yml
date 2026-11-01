@@ -94,7 +94,7 @@ jobs:
           Path('ExportOptions.plist').write_bytes(plistlib.dumps(options))
           PY
 
-      - name: Archive using automatic Apple signing
+      - name: Create unsigned device archive for distribution
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -112,7 +112,7 @@ jobs:
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGNING_ALLOWED=NO \
             ASSETCATALOG_COMPILER_APPICON_NAME=AppIcon \
             MARKETING_VERSION=1.0 \
             CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"
