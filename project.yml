@@ -24,6 +24,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.jdarkyeka6.calculator
         PRODUCT_NAME: CipherVaultJD26
+        PRODUCT_MODULE_NAME: Calculator
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: "CipherVault"
         INFOPLIST_KEY_NSFaceIDUsageDescription: "Unlock your encrypted private vault using Face ID."
@@ -51,3 +52,5 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/CipherVaultJD26.app/CipherVaultJD26"
+        BUNDLE_LOADER: "$(TEST_HOST)"
