@@ -1,0 +1,69 @@
+name: CipherVault TestFlight
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/ciphervault-ios-v1
+    paths:
+      - .github/workflows/testflight.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ciphervault-testflight
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: macos-15
+    timeout-minutes: 65
+    steps:
+      - name: Check out CipherVault
+        uses: actions/checkout@v4
+
+      - name: Validate Apple signing secrets
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY APPLE_TEAM_ID; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing or empty GitHub Actions secret: $name"
+              exit 1
+            fi
+          done
+          echo "All four Apple secret variables are present."
+
+      - name: Select Xcode
+        run: |
+          if [ -d /Applications/Xcode_26.3.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.3.app
+          fi
+          xcodebuild -version
+
+      - name: Generate App Store icon
+        run: python3 ios-ci/generate_app_icon.py
+
+      - name: Prepare iOS project
+        run: |
+          brew install xcodegen
+          xcodegen generate --spec project.yml
+
+      - name: Configure Ruby and Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Archive, sign, and upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: bundle exec fastlane beta
