@@ -33,7 +33,9 @@ targets:
         INFOPLIST_KEY_UIApplicationSupportsDocumentBrowser: NO
         INFOPLIST_KEY_UIFileSharingEnabled: NO
         INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: NO
-        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        TARGETED_DEVICE_FAMILY: "1"
         SWIFT_EMIT_LOC_STRINGS: YES
         ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
     scheme:
