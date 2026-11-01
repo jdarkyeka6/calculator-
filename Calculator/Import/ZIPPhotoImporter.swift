@@ -74,7 +74,11 @@ enum ZIPPhotoImporter {
                 guard entries <= maxEntries else { throw ImportError.tooManyEntries }
                 guard entry.type == .file else { continue } // Skip links and directories.
 
-                let name = entry.path.split(separator: "/").last.map(String.init) ?? ""
+                let components = entry.path.split(separator: "/")
+                let name = components.last.map(String.init) ?? ""
+                // ZIPs made on macOS can contain AppleDouble metadata files.
+                guard !name.hasPrefix("."),
+                      !components.contains(where: { $0 == "__MACOSX" }) else { continue }
                 let ext = URL(fileURLWithPath: name).pathExtension.lowercased()
                 guard extensions.contains(ext) else { continue }
                 guard photos.count < maxPhotos else { throw ImportError.tooManyPhotos }
