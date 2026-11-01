@@ -25,7 +25,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.jdarkyeka6.calculator
         PRODUCT_NAME: Calculator
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Calculator
+        INFOPLIST_KEY_CFBundleDisplayName: "CALCULATOR++"
+        INFOPLIST_KEY_CFBundleName: "CALCULATOR++"
         INFOPLIST_KEY_NSFaceIDUsageDescription: "Unlock your encrypted private vault using Face ID."
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Import selected photos and videos into your local encrypted vault."
         INFOPLIST_KEY_NSCameraUsageDescription: "Optional, visible recording of security incidents when explicitly enabled."
