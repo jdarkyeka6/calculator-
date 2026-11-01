@@ -5,18 +5,12 @@ import AVKit
 
 struct VaultHomeView: View {
     @EnvironmentObject private var model: AppModel
-    @ObservedObject private var store: VaultStore
     @State private var filter: VaultKind?
     @State private var importFiles = false
     @State private var showNote = false
     @State private var showSecurity = false
     @State private var selectedPhotos: [PhotosPickerItem] = []
     @State private var selectedItem: VaultItem?
-
-    init() {
-        // Store is owned by AppModel; read it from the environment in the content.
-        _store = ObservedObject(wrappedValue: VaultStore())
-    }
 
     var body: some View {
         NavigationStack {
@@ -199,6 +193,8 @@ struct VaultItemDetail: View {
     @State private var videoURL: URL?
     @State private var errorText: String?
     @State private var confirmExport = false
+    @State private var exportedURL: URL?
+    @State private var pendingCleanupURL: URL?
 
     var body: some View {
         NavigationStack {
@@ -241,11 +237,21 @@ struct VaultItemDetail: View {
                     do {
                         let url = try model.store.decryptToProtectedTemporaryFile(item)
                         // Export uses iOS share sheet; recipients control the unencrypted copy.
-                        presentShareSheet(url)
+                        pendingCleanupURL = url
+                        exportedURL = url
                     } catch { errorText = error.localizedDescription }
                 }
             } message: {
                 Text("Exported files are no longer protected by CipherVault encryption.")
+            }
+            .sheet(isPresented: Binding(
+                get: { exportedURL != nil },
+                set: { if !$0 { exportedURL = nil } }
+            ), onDismiss: {
+                if let url = pendingCleanupURL { model.store.removeTemporaryFile(url) }
+                pendingCleanupURL = nil
+            }) {
+                if let url = exportedURL { ActivityShareView(items: [url]) }
             }
             .task { load() }
             .onDisappear {
@@ -265,11 +271,13 @@ struct VaultItemDetail: View {
         } catch { errorText = error.localizedDescription }
     }
 
-    private func presentShareSheet(_ url: URL) {
-        guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first,
-              let controller = scene.keyWindow?.rootViewController else { return }
-        let share = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-        if let popover = share.popoverPresentationController { popover.sourceView = controller.view }
-        controller.present(share, animated: true)
+}
+
+struct ActivityShareView: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
     }
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
 }

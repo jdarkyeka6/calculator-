@@ -1,0 +1,20 @@
+name: iOS Simulator Build
+on:
+  push:
+    branches: [feature/ciphervault-ios-v1]
+  pull_request:
+    branches: [main]
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build (unsigned simulator)
+        run: |
+          xcodebuild -project Calculator.xcodeproj -scheme Calculator \
+            -sdk iphonesimulator -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO build

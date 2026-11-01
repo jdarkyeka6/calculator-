@@ -133,7 +133,7 @@ final class VaultStore: ObservableObject {
             .appendingPathExtension(ext.isEmpty ? "bin" : ext)
         do {
             try VaultFileCodec.open(source: encrypted, destination: out,
-                                    key: key, expectedBytes: item.byteCount)
+                                    key: key, expectedBytes: item.byteCount, expectedSHA256: item.sha256)
         } catch {
             try? fm.removeItem(at: out)
             throw error
