@@ -4,6 +4,8 @@ struct RootView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.scenePhase) private var scenePhase
     @State private var faceDown = FaceDownMonitor()
+    @AppStorage("cv.faceDownAction") private var faceDownAction: FaceDownAction = .calculator
+    @AppStorage("cv.faceDownCustomURL") private var faceDownCustomURL = ""
 
     var body: some View {
         ZStack {
@@ -47,7 +49,11 @@ struct RootView: View {
     private func updateMotion() {
         faceDown.stop()
         if scenePhase == .active && (model.route == .vault || model.route == .decoy) {
-            faceDown.start { model.emergencyCover() }
+            faceDown.start {
+                // Always remove access to decrypted vault content first.
+                model.emergencyCover()
+                faceDownAction.openDestination(customWebsite: faceDownCustomURL)
+            }
         }
     }
 }
