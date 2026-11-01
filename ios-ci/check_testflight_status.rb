@@ -55,7 +55,7 @@ if uploads
   end
 end
 
-builds = read_apple("/v1/apps/#{id}/builds?limit=30&sort=-uploadedDate", token)
+builds = read_apple("/v1/apps/#{id}/builds?limit=30", token)
 if builds
   rows = builds.fetch("data", [])
   puts "BUILDS_TOTAL_FIRST_PAGE=#{rows.size}"
@@ -69,6 +69,15 @@ if builds
       beta = d&.fetch("attributes", {}) || {}
       puts "BETA build=#{a['version']} internal=#{beta['internalBuildState']} external=#{beta['externalBuildState']}"
     end
+  end
+end
+groups = read_apple("/v1/apps/#{id}/betaGroups?limit=30", token)
+if groups
+  group_rows = groups.fetch("data", [])
+  puts "BETA_GROUPS_TOTAL_FIRST_PAGE=#{group_rows.size}"
+  group_rows.each do |group|
+    a = group.fetch("attributes", {})
+    puts "BETA_GROUP id=#{group['id']} name=#{a['name']} internal=#{a['isInternalGroup']} publicLink=#{a['publicLinkEnabled']}"
   end
 end
 puts "CIPHERVAULT_READ_ONLY_CHECK_COMPLETE"
