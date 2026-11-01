@@ -55,6 +55,7 @@ targets:
       - path: CalculatorTests
     dependencies:
       - target: Calculator
+      - package: ZIPFoundation
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
