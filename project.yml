@@ -34,4 +34,15 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
     scheme:
-      testTargets: []
+      testTargets:
+        - CalculatorTests
+  CalculatorTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: CalculatorTests
+    dependencies:
+      - target: Calculator
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
