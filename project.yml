@@ -24,7 +24,6 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.jdarkyeka6.calculator
         PRODUCT_NAME: Calculator
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Calculator
         INFOPLIST_KEY_NSFaceIDUsageDescription: "Unlock your encrypted private vault using Face ID."
