@@ -23,7 +23,15 @@ Private iPhone calculator with a **local, authenticated, encrypted file vault**.
 - Files picker supporting on-device storage, iCloud Drive, and integrated providers such as Google Drive.
 - Photos picker, including selected photos and videos, with current encoding requested.
 - Duplicates skipped by SHA-256, byte-for-byte encrypted inputs, embedded metadata retained.
-- Original source files untouched; vault locks after every import batch.
+- Original source files are left untouched. Importing photos, files or notes keeps
+  the current authenticated vault session open; explicit Lock, app backgrounding
+  and face-down still lock the vault.
+- A ZIP file picked via **Files or ZIP of photos** imports supported pictures
+  from nested folders (JPEG, PNG, HEIC/HEIF, GIF, WebP, TIFF, BMP, AVIF).
+  Non-images, links and directories are skipped, duplicate photos are skipped,
+  and original ZIPs are not modified. ZIP imports are limited to 500 images,
+  50 MB per extracted image, 1 GB uncompressed in total and 5,000 entries.
+  Temporary extracted photos are file-protected and deleted after the batch.
 - Protected temporary previews, on-device notes, basic encrypted media playback and explicit export.
 - Decoy vault via separate optional swipe pattern.
 - Face-down fast lock and app-background lock.
