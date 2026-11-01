@@ -10,6 +10,9 @@ settings:
     TARGETED_DEVICE_FAMILY: "1"
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     CODE_SIGN_STYLE: Automatic
+    VERSIONING_SYSTEM: apple-generic
+    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.0"
     DEVELOPMENT_TEAM: ""
 targets:
   Calculator:
@@ -21,6 +24,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.jdarkyeka6.calculator
         PRODUCT_NAME: Calculator
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Calculator
         INFOPLIST_KEY_NSFaceIDUsageDescription: "Unlock your encrypted private vault using Face ID."
