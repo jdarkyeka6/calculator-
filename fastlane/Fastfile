@@ -43,14 +43,26 @@ platform :ios do
       unlock: true
     )
 
-    cert(
+    # Shared Apple signing only. Fastlane Match fetches an existing
+    # certificate, its private key and this app's profile from private storage.
+    # This lane never creates or revokes Apple Distribution certificates.
+    required_match = %w[MATCH_GIT_URL MATCH_GIT_BASIC_AUTHORIZATION MATCH_PASSWORD]
+    missing_match = required_match.select { |name| ENV[name].to_s.empty? }
+    UI.user_error!("Shared signing isn't provisioned: #{missing_match.join(', ')}") unless missing_match.empty?
+
+    match(
+      type: "appstore",
+      readonly: true,
+      app_identifier: [APP_IDENTIFIER],
       api_key: api_key,
-      generate_apple_certs: true,
-      keychain_path: File.expand_path("~/Library/Keychains/calculator-ci.keychain-db"),
+      git_url: ENV.fetch("MATCH_GIT_URL"),
+      git_basic_authorization: ENV.fetch("MATCH_GIT_BASIC_AUTHORIZATION"),
+      keychain_name: "calculator-ci.keychain",
       keychain_password: "temporary-ci-keychain"
     )
-    sigh(api_key: api_key, app_identifier: APP_IDENTIFIER, force: true)
-    profile = lane_context[SharedValues::SIGH_NAME]
+    mapping = lane_context[SharedValues::MATCH_PROVISIONING_PROFILE_MAPPING] || {}
+    profile = mapping[APP_IDENTIFIER]
+    UI.user_error!("No shared App Store profile found for #{APP_IDENTIFIER}") if profile.nil?
 
     update_code_signing_settings(
       path: "Calculator.xcodeproj",
