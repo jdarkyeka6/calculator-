@@ -28,13 +28,23 @@ struct VaultHomeView: View {
 
                 Section("Import") {
                     Button { importFiles = true } label: {
-                        Label("Files, iCloud Drive or Google Drive", systemImage: "folder.badge.plus")
+                        Label("Files or ZIP of photos", systemImage: "folder.badge.plus")
+                    }
+                    .disabled(model.isImporting)
+                    Text("Select a ZIP to import all supported photos. Non-photo entries are skipped.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if model.isImporting {
+                        ProgressView(model.importStatus ?? "Importing…")
+                    } else if let status = model.importStatus {
+                        Text(status).font(.caption).foregroundStyle(.secondary)
                     }
                     PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 0,
                                  matching: .any(of: [.images, .videos]),
                                  preferredItemEncoding: .current) {
                         Label("Photos and videos", systemImage: "photo.on.rectangle.angled")
                     }
+                    .disabled(model.isImporting)
                     Button { showNote = true } label: {
                         Label("Write encrypted note", systemImage: "square.and.pencil")
                     }
@@ -70,7 +80,7 @@ struct VaultHomeView: View {
                     .onDelete(perform: delete)
                 } header: { Text("Vault") }
                 footer: {
-                    Text("Duplicate detection and metadata preservation are enabled. All items are encrypted, and the vault locks after each import batch.")
+                    Text("Duplicates are skipped. Importing keeps your vault open; Lock, face-down and backgrounding still lock it.")
                 }
             }
             .scrollContentBackground(.hidden)
@@ -95,7 +105,6 @@ struct VaultHomeView: View {
                 Task {
                     await importPhotoSelections(choices)
                     selectedPhotos = []
-                    model.emergencyCover()
                 }
             }
             .sheet(isPresented: $showNote) { NewNoteView() }
@@ -115,9 +124,22 @@ struct VaultHomeView: View {
         }
     }
 
+    @MainActor
     private func importPhotoSelections(_ choices: [PhotosPickerItem]) async {
+        guard model.route == .vault, !model.isImporting else { return }
+        model.isImporting = true
+        model.imported = 0
+        model.skipped = 0
+        model.importFailed = 0
+        defer {
+            model.isImporting = false
+            if model.route == .vault {
+                model.importStatus = "Import complete: \(model.imported) added, \(model.skipped) duplicates, \(model.importFailed) failed."
+            }
+        }
         for (index, choice) in choices.enumerated() {
             guard model.route == .vault else { break }
+            model.importStatus = "Importing photo or video \(index + 1) of \(choices.count)…"
             let isVideo = choice.supportedContentTypes.contains { $0.conforms(to: .movie) }
             do {
                 if isVideo {
@@ -125,9 +147,10 @@ struct VaultHomeView: View {
                         throw VaultError.missingFile
                     }
                     defer { try? FileManager.default.removeItem(at: video.temporaryURL) }
-                    _ = try await model.store.importFile(video.temporaryURL, kind: .video,
+                    let added = try await model.store.importFile(video.temporaryURL, kind: .video,
                             name: "Imported video \(index + 1).\(video.temporaryURL.pathExtension)",
                             sourceName: "Photos")
+                    if added { model.imported += 1 } else { model.skipped += 1 }
                 } else {
                     guard let data = try await choice.loadTransferable(type: Data.self) else {
                         throw VaultError.missingFile
@@ -138,10 +161,13 @@ struct VaultHomeView: View {
                         .appendingPathComponent(UUID().uuidString).appendingPathExtension(ext)
                     try data.write(to: temporary, options: [.atomic, .completeFileProtection])
                     defer { try? FileManager.default.removeItem(at: temporary) }
-                    _ = try await model.store.importFile(temporary, kind: .photo,
+                    let added = try await model.store.importFile(temporary, kind: .photo,
                             name: "Imported photo \(index + 1).\(ext)", sourceName: "Photos")
+                    if added { model.imported += 1 } else { model.skipped += 1 }
                 }
             } catch {
+                if model.route != .vault { break }
+                model.importFailed += 1
                 model.errorMessage = "Photo import failed: \(error.localizedDescription)"
             }
         }
@@ -171,7 +197,6 @@ struct NewNoteView: View {
                             do {
                                 try await model.store.createNote(title: title, content: content)
                                 dismiss()
-                                model.emergencyCover()
                             } catch {
                                 model.errorMessage = error.localizedDescription
                             }
