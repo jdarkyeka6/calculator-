@@ -28,3 +28,5 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
         run: bundle exec ruby ios-ci/check_testflight_status.rb
+
+# Check processing state of the renamed CALCULATOR++ v1.0 build.
