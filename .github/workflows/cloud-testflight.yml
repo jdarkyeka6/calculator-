@@ -44,6 +44,7 @@ jobs:
           grep -q 'Files or ZIP of photos' Calculator/UI/VaultHomeView.swift
           grep -q 'imported files are encrypted' README.md || grep -q 'Original source files are left untouched' README.md
           grep -q 'ZIPFoundation' project.yml
+          grep -q 'removeInterruptedImportFiles' Calculator/AppModel.swift
           grep -q 'FaceDownAction' Calculator/Motion/FaceDownAction.swift
 
       - name: Verify and stage App Store Connect key
