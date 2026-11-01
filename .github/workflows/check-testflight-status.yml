@@ -1,0 +1,30 @@
+name: CipherVault Apple TestFlight Status
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/ciphervault-ios-v1
+    paths:
+      - .github/workflows/check-testflight-status.yml
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - name: Check actual Apple build and TestFlight status
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: bundle exec ruby ios-ci/check_testflight_status.rb
