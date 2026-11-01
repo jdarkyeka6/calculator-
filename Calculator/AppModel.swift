@@ -20,6 +20,7 @@ final class AppModel: ObservableObject {
     private var pendingKey: SymmetricKey?
 
     init() {
+        ZIPPhotoImporter.removeInterruptedImportFiles()
         route = CredentialStore.isConfigured ? .calculator : .setup
     }
 
