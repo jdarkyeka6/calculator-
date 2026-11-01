@@ -12,6 +12,9 @@ final class AppModel: ObservableObject {
     @Published var lockoutMessage: String?
     @Published var imported = 0
     @Published var skipped = 0
+    @Published var importFailed = 0
+    @Published var isImporting = false
+    @Published var importStatus: String?
     let store = VaultStore()
 
     private var pendingKey: SymmetricKey?
@@ -118,20 +121,50 @@ final class AppModel: ObservableObject {
     }
 
     func importFiles(_ urls: [URL], sourceName: String = "Files") async {
-        guard route == .vault else { return }
+        guard route == .vault, !isImporting else { return }
+        isImporting = true
         imported = 0
         skipped = 0
-        for url in urls {
-            if route != .vault { break }
+        importFailed = 0
+        importStatus = "Preparing import…"
+        defer {
+            isImporting = false
+            if route == .vault {
+                importStatus = "Import complete: \\(imported) added, \\(skipped) duplicates, \\(importFailed) failed."
+            }
+            // Intentionally stay unlocked while the app is active.
+            // Backgrounding, face-down and the Lock button still secure the vault.
+        }
+
+        for source in urls {
+            guard route == .vault else { break }
             do {
-                let didAdd = try await store.importFile(url, sourceName: sourceName)
-                if didAdd { imported += 1 } else { skipped += 1 }
+                if ZIPPhotoImporter.isZIP(source) {
+                    let batch = try await ZIPPhotoImporter.extractPhotos(from: source)
+                    defer { batch.cleanup() }
+                    for (index, photo) in batch.photos.enumerated() {
+                        guard route == .vault else { break }
+                        importStatus = "ZIP photos: \\(index + 1) of \\(batch.photos.count)"
+                        do {
+                            let added = try await store.importFile(photo.url, kind: .photo,
+                                             name: photo.name, sourceName: "ZIP: " + source.lastPathComponent)
+                            if added { imported += 1 } else { skipped += 1 }
+                        } catch {
+                            importFailed += 1
+                            errorMessage = "Could not import \\(photo.name): \\(error.localizedDescription)"
+                        }
+                    }
+                } else {
+                    importStatus = "Importing \\(source.lastPathComponent)…"
+                    let added = try await store.importFile(source, sourceName: sourceName)
+                    if added { imported += 1 } else { skipped += 1 }
+                }
             } catch {
-                errorMessage = "Import failed for \(url.lastPathComponent): \(error.localizedDescription)"
+                if route != .vault { break }
+                importFailed += 1
+                errorMessage = "Import failed for \\(source.lastPathComponent): \\(error.localizedDescription)"
             }
         }
-        // User-selected setting: lock after *every* import batch, even partial failure.
-        emergencyCover()
     }
 
     func emergencyCover() {
