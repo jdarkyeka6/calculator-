@@ -2,7 +2,8 @@ import Foundation
 import CoreMotion
 
 /// Covers the vault when the SCREEN faces down for more than 0.4 seconds.
-/// This does not attempt to launch other apps, which iOS cannot guarantee.
+/// The caller locks the vault before optionally requesting an external app link.
+/// iOS controls whether another app actually opens.
 final class FaceDownMonitor {
     private let motion = CMMotionManager()
     private var startTime: Date?
