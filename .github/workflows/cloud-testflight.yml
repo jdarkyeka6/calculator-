@@ -125,6 +125,8 @@ jobs:
           INFO="$APP/Info.plist"
           BUNDLE_NAME=$(/usr/libexec/PlistBuddy -c "Print :CFBundleName" "$INFO")
           test "$BUNDLE_NAME" = "CipherVaultJD26" || { echo "::error::Unexpected bundle name $BUNDLE_NAME"; exit 1; }
+          DISPLAY_NAME=$(/usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$INFO")
+          test "$DISPLAY_NAME" = "CipherVault" || { echo "::error::Unexpected display name $DISPLAY_NAME"; exit 1; }
           echo "Registered bundle name and display name:"
           /usr/libexec/PlistBuddy -c "Print :CFBundleName" "$INFO"
           /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$INFO"
