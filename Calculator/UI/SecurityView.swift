@@ -5,6 +5,8 @@ struct SecurityView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var addingDuress = false
     @State private var notice: String?
+    @AppStorage("cv.faceDownAction") private var faceDownAction: FaceDownAction = .calculator
+    @AppStorage("cv.faceDownCustomURL") private var faceDownCustomURL = ""
 
     var body: some View {
         NavigationStack {
@@ -12,8 +14,29 @@ struct SecurityView: View {
                 Section("Privacy") {
                     Label("Face ID only: no iPhone passcode fallback", systemImage: "faceid")
                     Label("AES-256-GCM encrypted local files", systemImage: "lock.shield")
-                    Label("Face-down gesture locks the vault", systemImage: "iphone.gen3")
+                    Label("Face-down gesture immediately locks the vault", systemImage: "iphone.gen3")
                     Label("Automatic lock after importing", systemImage: "arrow.down.doc")
+                }
+                Section("Face-down action") {
+                    Picker("When face down", selection: $faceDownAction) {
+                        ForEach(FaceDownAction.allCases) { action in
+                            Text(action.title).tag(action)
+                        }
+                    }
+                    if faceDownAction == .customWebsite {
+                        TextField("Website, e.g. example.com", text: $faceDownCustomURL)
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.URL)
+                            .autocorrectionDisabled()
+                        if FaceDownAction.safeWebsite(faceDownCustomURL) == nil {
+                            Text("Enter a valid HTTPS address to enable the website action.")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                    Text("When the vault is open, turning your iPhone face down locks your encrypted files first, then attempts to open your selected destination. iOS controls whether another app or its website opens. This does not run while CipherVault is in the background or bypass device restrictions.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 Section("Duress") {
                     Button(CredentialStore.hasDuressPattern ? "Change decoy pattern" : "Create decoy pattern") {
