@@ -42,6 +42,16 @@ enum ZIPPhotoImporter {
         }
     }
 
+    /// Scrub files left in temporary storage if iOS terminated an earlier import.
+    static func removeInterruptedImportFiles() {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory
+        guard let urls = try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else { return }
+        for url in urls where url.lastPathComponent.hasPrefix("CipherVaultZIP-") {
+            try? fm.removeItem(at: url)
+        }
+    }
+
     static func isZIP(_ url: URL) -> Bool {
         url.pathExtension.lowercased() == "zip"
     }
