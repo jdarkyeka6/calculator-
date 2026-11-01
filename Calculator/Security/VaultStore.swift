@@ -9,6 +9,7 @@ final class VaultStore: ObservableObject {
     @Published var message: String?
 
     private var vaultKey: SymmetricKey?
+    private var lockGeneration: UInt64 = 0
     private let fm = FileManager.default
 
     private var root: URL {
@@ -43,6 +44,7 @@ final class VaultStore: ObservableObject {
     }
 
     func lock() {
+        lockGeneration &+= 1
         vaultKey = nil
         items = []
         message = nil
@@ -56,6 +58,7 @@ final class VaultStore: ObservableObject {
         defer { isBusy = false }
         try ensureDirectories()
 
+        let startedGeneration = lockGeneration
         let accessing = source.startAccessingSecurityScopedResource()
         defer { if accessing { source.stopAccessingSecurityScopedResource() } }
 
@@ -68,6 +71,8 @@ final class VaultStore: ObservableObject {
         let details = try await Task.detached(priority: .userInitiated) {
             try VaultFileCodec.seal(source: source, destination: staging, key: key)
         }.value
+        // Ignore a completed import if backgrounding, face-down or manual lock happened meanwhile.
+        guard lockGeneration == startedGeneration, vaultKey != nil else { throw VaultError.locked }
 
         if items.contains(where: { $0.sha256 == details.sha256 && $0.byteCount == details.byteCount }) {
             message = "Duplicate skipped: \(overrideName ?? source.lastPathComponent)"
@@ -139,6 +144,32 @@ final class VaultStore: ObservableObject {
             throw error
         }
         return out
+    }
+
+    func preparePreview(for item: VaultItem) async throws -> URL {
+        guard let key = vaultKey else { throw VaultError.locked }
+        try ensureDirectories()
+        let startedGeneration = lockGeneration
+        let encrypted = encryptedURL(item.id)
+        guard fm.fileExists(atPath: encrypted.path) else { throw VaultError.missingFile }
+        let ext = UTType(item.contentType)?.preferredFilenameExtension ??
+            URL(fileURLWithPath: item.name).pathExtension
+        let out = tempURL.appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension(ext.isEmpty ? "bin" : ext)
+        do {
+            try await Task.detached(priority: .userInitiated) {
+                try VaultFileCodec.open(source: encrypted, destination: out, key: key,
+                                        expectedBytes: item.byteCount, expectedSHA256: item.sha256)
+            }.value
+            guard startedGeneration == lockGeneration, vaultKey != nil else {
+                try? fm.removeItem(at: out)
+                throw VaultError.locked
+            }
+            return out
+        } catch {
+            try? fm.removeItem(at: out)
+            throw error
+        }
     }
 
     func removeTemporaryFile(_ url: URL) { try? fm.removeItem(at: url) }

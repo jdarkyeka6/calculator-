@@ -253,7 +253,7 @@ struct VaultItemDetail: View {
             }) {
                 if let url = exportedURL { ActivityShareView(items: [url]) }
             }
-            .task { load() }
+            .task { await load() }
             .onDisappear {
                 if let videoURL { model.store.removeTemporaryFile(videoURL) }
             }
@@ -261,10 +261,10 @@ struct VaultItemDetail: View {
         .preferredColorScheme(.dark)
     }
 
-    private func load() {
+    private func load() async {
         do {
             if item.kind == .video {
-                videoURL = try model.store.decryptToProtectedTemporaryFile(item)
+                videoURL = try await model.store.preparePreview(for: item)
             } else if item.kind == .note || item.kind == .photo {
                 data = try model.store.plaintext(for: item)
             }
