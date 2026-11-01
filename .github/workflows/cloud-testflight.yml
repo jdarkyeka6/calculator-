@@ -1,0 +1,138 @@
+name: CipherVault TestFlight - Xcode Cloud Signing
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/ciphervault-ios-v1
+    paths:
+      - .github/workflows/cloud-testflight.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ciphervault-cloud-testflight
+  cancel-in-progress: false
+
+jobs:
+  sign-and-upload:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - name: Checkout CipherVault
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          if [ -d /Applications/Xcode_26.3.app ]; then
+            sudo xcode-select -s /Applications/Xcode_26.3.app
+          fi
+          xcodebuild -version
+
+      - name: Verify and stage App Store Connect key
+        shell: bash
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          for field in ASC_KEY_ID ASC_ISSUER_ID ASC_PRIVATE_KEY APPLE_TEAM_ID; do
+            test -n "${!field:-}" || { echo "::error::Missing $field"; exit 1; }
+          done
+          umask 077
+          python3 - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+          raw = os.environ['ASC_PRIVATE_KEY'].strip()
+          if 'BEGIN PRIVATE KEY' in raw:
+              pem = raw.replace('\\n', '\n')
+          else:
+              pem = base64.b64decode(raw).decode()
+          assert 'BEGIN PRIVATE KEY' in pem, 'Invalid App Store Connect .p8 key'
+          target = Path(os.environ['RUNNER_TEMP']) / ('AuthKey_' + os.environ['ASC_KEY_ID'] + '.p8')
+          target.write_text(pem)
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              env.write('ASC_KEY_PATH=' + str(target) + '\n')
+          PY
+
+      - name: Generate provisional opaque App Store icon
+        run: |
+          python3 ios-ci/generate_app_icon.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("Calculator/Assets.xcassets/AppIcon.appiconset/Contents.json")
+          p.write_text(json.dumps({
+              "images":[{"filename":"AppIcon-1024.png","idiom":"universal","platform":"ios","size":"1024x1024"}],
+              "info":{"author":"xcode","version":1}
+          },indent=2))
+          PY
+
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate --spec project.yml
+
+      - name: Prepare App Store Connect export options
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          python3 - <<'PY'
+          import os, plistlib
+          from pathlib import Path
+          options = {
+              'method': 'app-store-connect',
+              'destination': 'upload',
+              'signingStyle': 'automatic',
+              'teamID': os.environ['APPLE_TEAM_ID'],
+              'manageAppVersionAndBuildNumber': False
+          }
+          Path('ExportOptions.plist').write_bytes(plistlib.dumps(options))
+          PY
+
+      - name: Archive using automatic Apple signing
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild archive \
+            -project Calculator.xcodeproj \
+            -scheme Calculator \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Calculator.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+            CODE_SIGN_STYLE=Automatic \
+            ASSETCATALOG_COMPILER_APPICON_NAME=AppIcon \
+            MARKETING_VERSION=1.0 \
+            CURRENT_PROJECT_VERSION="$GITHUB_RUN_NUMBER"
+
+      - name: Distribute via Apple's cloud-managed signing
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Calculator.xcarchive" \
+            -exportPath "$RUNNER_TEMP/CalculatorExport" \
+            -exportOptionsPlist ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Remove API key from runner
+        if: always()
+        run: |
+          if [ -n "${ASC_KEY_PATH:-}" ]; then rm -f "$ASC_KEY_PATH"; fi
