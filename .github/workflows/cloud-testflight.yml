@@ -121,6 +121,9 @@ jobs:
         run: |
           set -euo pipefail
           INFO="$RUNNER_TEMP/Calculator.xcarchive/Products/Applications/Calculator.app/Info.plist"
+          echo "Registered bundle name and display name:"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleName" "$INFO"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" "$INFO"
           echo "Supported orientations:"
           /usr/libexec/PlistBuddy -c "Print :UISupportedInterfaceOrientations" "$INFO"
           echo "Launch screen configuration:"
