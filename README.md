@@ -27,6 +27,11 @@ Private iPhone calculator with a **local, authenticated, encrypted file vault**.
 - Protected temporary previews, on-device notes, basic encrypted media playback and explicit export.
 - Decoy vault via separate optional swipe pattern.
 - Face-down fast lock and app-background lock.
+- Customisable **Security Centre → Face-down action**: calculator, YouTube,
+  Gmail, browser, or your own HTTPS website. The vault is always locked
+  before launching an external destination. iOS may route to a browser,
+  decline opening a third-party app, or restrict the link due to device policy.
+  It only works while CipherVault is open in the foreground.
 - Local failed-attempt log (not a tamper-proof forensic record).
 
 ## Planned / limitations
