@@ -30,6 +30,13 @@ jobs:
           fi
           xcodebuild -version
 
+      - name: Verify configurable face-down feature is included
+        run: |
+          set -euo pipefail
+          grep -q 'faceDownAction.openDestination' Calculator/UI/RootView.swift
+          grep -q 'Face-down action' Calculator/UI/SecurityView.swift
+          grep -q 'enum FaceDownAction' Calculator/Motion/FaceDownAction.swift
+
       - name: Verify and stage App Store Connect key
         shell: bash
         env:
