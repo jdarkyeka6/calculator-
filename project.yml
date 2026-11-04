@@ -33,6 +33,8 @@ targets:
         PRODUCT_MODULE_NAME: Calculator
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: "CipherVault"
+        # All encryption uses Apple CryptoKit/CommonCrypto; standard OS-provided primitives.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         INFOPLIST_KEY_NSFaceIDUsageDescription: "Unlock your encrypted private vault using Face ID."
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Import selected photos and videos into your local encrypted vault."
         INFOPLIST_KEY_NSCameraUsageDescription: "Optional, visible recording of security incidents when explicitly enabled."
