@@ -47,6 +47,17 @@ jobs:
           grep -q 'removeInterruptedImportFiles' Calculator/AppModel.swift
           grep -q 'FaceDownAction' Calculator/Motion/FaceDownAction.swift
 
+      - name: Verify new encrypted library navigation
+        run: |
+          set -euo pipefail
+          grep -q 'VaultLibraryView()' Calculator/UI/VaultHomeView.swift
+          grep -q 'enum LibrarySection' Calculator/UI/VaultLibraryView.swift
+          grep -q 'VaultPhotoThumbnail' Calculator/UI/VaultLibraryView.swift
+          grep -q 'VaultItemBrowser' Calculator/UI/VaultLibraryView.swift
+          grep -q 'tabViewStyle(.page' Calculator/UI/VaultItemBrowser.swift
+          grep -q 'quickLookPreview' Calculator/UI/VaultItemBrowser.swift
+          grep -q 'INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO' project.yml
+
       - name: Verify and stage App Store Connect key
         shell: bash
         env:
