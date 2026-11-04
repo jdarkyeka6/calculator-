@@ -29,7 +29,7 @@ enum LibrarySection: String, CaseIterable, Identifiable {
 
 struct VaultLibraryView: View {
     @EnvironmentObject private var model: AppModel
-    @Binding var selectedItem: VaultItem?
+    @State private var selectedItem: VaultItem?
     @State private var section: LibrarySection = .all
     @State private var searchText = ""
     @State private var pendingDelete: VaultItem?
@@ -51,7 +51,7 @@ struct VaultLibraryView: View {
                                 Text(tab.title)
                                 Text("\(count(for: tab))")
                                     .font(.caption2.monospacedDigit())
-                                    .foregroundStyle(section == tab ? Color.black.opacity(0.65) : .secondary)
+                                    .foregroundStyle(section == tab ? Color.black.opacity(0.65) : Color.secondary)
                             }
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 14)
@@ -177,6 +177,9 @@ struct VaultLibraryView: View {
             }
         }
         .searchable(text: $searchText, prompt: "Search your private library")
+        .sheet(item: $selectedItem) { item in
+            VaultItemBrowser(item: item, items: visibleItems)
+        }
         .confirmationDialog("Delete \(pendingDelete?.name ?? "item")?", isPresented: Binding(
             get: { pendingDelete != nil },
             set: { if !$0 { pendingDelete = nil } }
