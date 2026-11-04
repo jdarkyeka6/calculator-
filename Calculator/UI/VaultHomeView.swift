@@ -5,99 +5,76 @@ import AVKit
 
 struct VaultHomeView: View {
     @EnvironmentObject private var model: AppModel
-    @State private var filter: VaultKind?
     @State private var importFiles = false
     @State private var showNote = false
     @State private var showSecurity = false
     @State private var selectedPhotos: [PhotosPickerItem] = []
-    @State private var selectedItem: VaultItem?
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    HStack(spacing: 14) {
-                        Image(systemName: "lock.shield.fill").font(.largeTitle).foregroundStyle(.cyan)
-                        VStack(alignment: .leading) {
-                            Text("Encrypted on this iPhone").font(.headline)
-                            Text("\(model.store.items.count) private items • Offline storage")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }.padding(.vertical, 8)
-                }
-
-                Section("Import") {
-                    Button { importFiles = true } label: {
-                        Label("Files or ZIP of photos", systemImage: "folder.badge.plus")
-                    }
-                    .disabled(model.isImporting)
-                    Text("Select a ZIP to import all supported photos. Non-photo entries are skipped.")
+            VStack(spacing: 0) {
+                if model.isImporting {
+                    ProgressView(model.importStatus ?? "Importing securely…")
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 8)
+                } else if let status = model.importStatus {
+                    Text(status)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    if model.isImporting {
-                        ProgressView(model.importStatus ?? "Importing…")
-                    } else if let status = model.importStatus {
-                        Text(status).font(.caption).foregroundStyle(.secondary)
-                    }
-                    PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 0,
-                                 matching: .any(of: [.images, .videos]),
-                                 preferredItemEncoding: .current) {
-                        Label("Photos and videos", systemImage: "photo.on.rectangle.angled")
-                    }
-                    .disabled(model.isImporting)
-                    Button { showNote = true } label: {
-                        Label("Write encrypted note", systemImage: "square.and.pencil")
-                    }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 8)
                 }
 
-                Section {
-                    Picker("Filter", selection: $filter) {
-                        Text("All").tag(nil as VaultKind?)
-                        ForEach(VaultKind.allCases) { kind in
-                            Text(kind.rawValue.capitalized).tag(Optional(kind))
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    if filtered.isEmpty {
-                        ContentUnavailableView("No items yet", systemImage: "lock.doc",
-                                               description: Text("Import a file or write a note to begin."))
-                    }
-                    ForEach(filtered) { item in
-                        Button { selectedItem = item } label: {
-                            HStack {
-                                Image(systemName: item.kind.icon)
-                                    .frame(width: 34).foregroundStyle(.cyan)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(item.name).foregroundStyle(.primary)
-                                    Text("\(ByteCountFormatter.string(fromByteCount: item.byteCount, countStyle: .file)) • \(item.kind.rawValue)")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right").foregroundStyle(.tertiary)
-                            }
-                        }
-                    }
-                    .onDelete(perform: delete)
-                } header: { Text("Vault") }
-                footer: {
-                    Text("Duplicates are skipped. Importing keeps your vault open; Lock, face-down and backgrounding still lock it.")
-                }
+                VaultLibraryView()
             }
-            .scrollContentBackground(.hidden)
             .navigationTitle("CipherVault")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button { showSecurity = true } label: { Image(systemName: "shield.lefthalf.filled") }
+                    Button {
+                        showSecurity = true
+                    } label: {
+                        Image(systemName: "shield.lefthalf.filled")
+                    }
+                    .accessibilityLabel("Security Centre")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Lock", systemImage: "lock.fill") { model.emergencyCover() }
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Menu {
+                        PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 0,
+                                     matching: .any(of: [.images, .videos]),
+                                     preferredItemEncoding: .current) {
+                            Label("Import photos or videos", systemImage: "photo.on.rectangle.angled")
+                        }
+                        .disabled(model.isImporting)
+                        Button {
+                            importFiles = true
+                        } label: {
+                            Label("Import files or photo ZIP", systemImage: "folder.badge.plus")
+                        }
+                        .disabled(model.isImporting)
+                        Button {
+                            showNote = true
+                        } label: {
+                            Label("Write encrypted note", systemImage: "square.and.pencil")
+                        }
+                        .disabled(model.isImporting)
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                    }
+                    .accessibilityLabel("Add to library")
+
+                    Button("Lock", systemImage: "lock.fill") {
+                        model.emergencyCover()
+                    }
                 }
             }
             .fileImporter(isPresented: $importFiles, allowedContentTypes: [.item],
                           allowsMultipleSelection: true) { result in
                 switch result {
-                case .success(let urls): Task { await model.importFiles(urls) }
-                case .failure(let error): model.errorMessage = error.localizedDescription
+                case .success(let urls):
+                    Task { await model.importFiles(urls) }
+                case .failure(let error):
+                    model.errorMessage = error.localizedDescription
                 }
             }
             .onChange(of: selectedPhotos) { _, choices in
@@ -109,18 +86,6 @@ struct VaultHomeView: View {
             }
             .sheet(isPresented: $showNote) { NewNoteView() }
             .sheet(isPresented: $showSecurity) { SecurityView() }
-            .sheet(item: $selectedItem) { item in VaultItemDetail(item: item) }
-        }
-    }
-
-    private var filtered: [VaultItem] {
-        model.store.items.filter { filter == nil || $0.kind == filter }
-    }
-
-    private func delete(at offsets: IndexSet) {
-        for offset in offsets {
-            do { try model.store.delete(filtered[offset]) }
-            catch { model.errorMessage = error.localizedDescription }
         }
     }
 
