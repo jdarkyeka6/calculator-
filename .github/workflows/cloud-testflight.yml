@@ -41,7 +41,7 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'ZIPPhotoImporter.extractPhotos' Calculator/AppModel.swift
-          grep -q 'Files or ZIP of photos' Calculator/UI/VaultHomeView.swift
+          grep -q 'Import files or photo ZIP' Calculator/UI/VaultHomeView.swift
           grep -q 'imported files are encrypted' README.md || grep -q 'Original source files are left untouched' README.md
           grep -q 'ZIPFoundation' project.yml
           grep -q 'removeInterruptedImportFiles' Calculator/AppModel.swift
