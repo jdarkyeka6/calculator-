@@ -29,4 +29,4 @@ jobs:
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
         run: bundle exec ruby ios-ci/check_testflight_status.rb
 
-# Check processing state of the renamed CALCULATOR++ v1.0 build.
+# Check Apple's processed build state, especially CipherVault v1.0 (9) and tester assignment.
