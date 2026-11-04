@@ -1,0 +1,37 @@
+name: CipherVault Fix TestFlight Export Compliance
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/ciphervault-ios-v1
+    paths:
+      - .github/workflows/fix-export-compliance.yml
+
+permissions:
+  contents: read
+
+jobs:
+  declare-and-enable-build-9:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - name: Verify current app uses only Apple encryption primitives
+        run: |
+          set -euo pipefail
+          grep -q 'import CryptoKit' Calculator/Security/VaultFileCodec.swift
+          grep -q 'AES.GCM.seal' Calculator/Security/VaultFileCodec.swift
+          grep -q 'import CommonCrypto' Calculator/Security/Credentials.swift
+          grep -q 'INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO' project.yml
+      - name: Declare exempt Apple encryption for build 9 and enable existing testers
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: bundle exec ruby ios-ci/fix_export_compliance.rb

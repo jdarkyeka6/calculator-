@@ -1,0 +1,41 @@
+name: iOS Simulator Build
+on:
+  push:
+    branches: [feature/ciphervault-ios-v1]
+  pull_request:
+    branches: [main]
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build (unsigned simulator)
+        run: |
+          xcodebuild -project Calculator.xcodeproj -scheme Calculator \
+            -sdk iphonesimulator -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO build
+      - name: Verify generated Apple export compliance key
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import plistlib
+          matches = list((Path.home() / "Library/Developer/Xcode/DerivedData").glob(
+              "*/Build/Products/Debug-iphonesimulator/CipherVaultJD26.app/Info.plist"))
+          assert matches, "CipherVault app Info.plist not found after simulator build"
+          with matches[-1].open("rb") as fh:
+              info = plistlib.load(fh)
+          value = info.get("ITSAppUsesNonExemptEncryption")
+          assert value is False, f"Expected boolean false for exempt OS crypto, found {value!r}"
+          print("Verified ITSAppUsesNonExemptEncryption is Boolean NO")
+          PY
+
+      - name: Crypto unit tests (iOS Simulator)
+        run: |
+          DEVICE_ID=$(xcrun simctl list -j devices available | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for group in d.values() for x in group if "iPhone" in x["name"]))')
+          xcodebuild -project Calculator.xcodeproj -scheme Calculator \
+            -destination "platform=iOS Simulator,id=$DEVICE_ID" \
+            CODE_SIGNING_ALLOWED=NO test

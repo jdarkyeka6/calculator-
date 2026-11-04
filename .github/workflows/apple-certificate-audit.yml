@@ -1,0 +1,30 @@
+name: Apple Certificate Inventory (read-only)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/ciphervault-ios-v1
+    paths:
+      - .github/workflows/apple-certificate-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: macos-15
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up read-only Apple API client
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+      - name: Inspect Apple certificates and related provisioning profiles
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: bundle exec ruby ios-ci/audit_certificates.rb

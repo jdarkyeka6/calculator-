@@ -1,0 +1,65 @@
+name: Calculator
+options:
+  bundleIdPrefix: com.jdarkyeka6
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    CODE_SIGN_STYLE: Automatic
+    VERSIONING_SYSTEM: apple-generic
+    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "1.0"
+    DEVELOPMENT_TEAM: ""
+packages:
+  ZIPFoundation:
+    url: https://github.com/weichsel/ZIPFoundation.git
+    exactVersion: 0.9.20
+targets:
+  Calculator:
+    type: application
+    platform: iOS
+    sources:
+      - path: Calculator
+    dependencies:
+      - package: ZIPFoundation
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jdarkyeka6.calculator
+        PRODUCT_NAME: CipherVaultJD26
+        PRODUCT_MODULE_NAME: Calculator
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: "CipherVault"
+        # All encryption uses Apple CryptoKit/CommonCrypto; standard OS-provided primitives.
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        INFOPLIST_KEY_NSFaceIDUsageDescription: "Unlock your encrypted private vault using Face ID."
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Import selected photos and videos into your local encrypted vault."
+        INFOPLIST_KEY_NSCameraUsageDescription: "Optional, visible recording of security incidents when explicitly enabled."
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Optional audio for consented security recordings."
+        INFOPLIST_KEY_UIApplicationSupportsDocumentBrowser: NO
+        INFOPLIST_KEY_UIFileSharingEnabled: NO
+        INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace: NO
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_EMIT_LOC_STRINGS: YES
+        ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
+    scheme:
+      testTargets:
+        - CalculatorTests
+  CalculatorTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: CalculatorTests
+    dependencies:
+      - target: Calculator
+      - package: ZIPFoundation
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/CipherVaultJD26.app/CipherVaultJD26"
+        BUNDLE_LOADER: "$(TEST_HOST)"
